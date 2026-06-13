@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>AI 智慧記帳助理</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --green: #00B300;
+  --green-dark: #009400;
+  --green-light: #e8f5e9;
+  --red: #ef5350;
+  --bg: #f2f6f2;
+  --card: #ffffff;
+  --text: #1a1a1a;
+  --sub: #888;
+  --border: #ebebeb;
+  --shadow: 0 2px 12px rgba(0,0,0,0.08);
+  --radius: 16px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+/* ── Header ── */
+.header {
+  background: var(--green);
+  padding: 20px 20px 28px;
+  position: relative; overflow: hidden;
+}
+.header::after {
+  content: ''; position: absolute; right: -30px; top: -30px;
+  width: 140px; height: 140px; border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+}
+.header::before {
+  content: ''; position: absolute; right: 40px; top: 40px;
+  width: 80px; height: 80px; border-radius: 50%;
+  background: rgba(255,255,255,0.06);
+}
+.header-inner { position: relative; z-index: 1; display: flex; align-items: center; gap: 12px; }
+.header-icon { width: 44px; height: 44px; background: rgba(255,255,255,0.2); border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.header-text h1 { color: white; font-size: 18px; font-weight: 700; }
+.header-text p { color: rgba(255,255,255,0.75); font-size: 11px; margin-top: 2px; }
+
+/* ── Tabs ── */
+.tabs-wrap {
+  background: var(--card);
+  box-shadow: 0 1px 0 var(--border), var(--shadow);
+  position: sticky; top: 0; z-index: 100;
+}
+.tabs { display: flex; padding: 0 12px; }
+.tab {
+  flex: 1; padding: 14px 0; text-align: center;
+  font-size: 13px; font-weight: 500; color: var(--sub);
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer; transition: all 0.2s; user-select: none;
+}
+.tab.active { color: var(--green); border-bottom-color: var(--green); font-weight: 600; }
+
+/* ── Pages ── */
+.page { display: none; padding: 16px 14px 80px; }
+.page.active { display: block; }
+
+/* ── Summary Cards ── */
+.cards { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 14px; }
+.card {
+  background: var(--card); border-radius: var(--radius);
+  padding: 16px 8px; text-align: center;
+  box-shadow: var(--shadow); border: 1px solid var(--border);
+}
+.card-val { font-size: 20px; font-weight: 700; color: var(--green); line-height: 1; }
+.card-lbl { font-size: 10px; color: var(--sub); margin-top: 6px; font-weight: 500; letter-spacing: 0.3px; }
+
+/* ── Section ── */
+.section {
+  background: var(--card); border-radius: var(--radius);
+  padding: 18px; margin-bottom: 14px;
+  box-shadow: var(--shadow); border: 1px solid var(--border);
+}
+.section-head {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px;
+}
+.section-title { font-size: 14px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+.section-sub { font-size: 11px; color: var(--sub); }
+
+/* ── Transaction ── */
+.tx { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #f7f7f7; }
+.tx:last-child { border-bottom: none; }
+.tx-l { display: flex; align-items: center; gap: 10px; }
+.cat-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.tx-info .tx-note { font-size: 14px; font-weight: 500; }
+.tx-info .tx-date { font-size: 11px; color: var(--sub); margin-top: 2px; }
+.tx-amt { font-size: 15px; font-weight: 600; color: var(--red); }
+.tx-amt.inc { color: var(--green); }
+
+.badge { display: inline-block; background: var(--green-light); color: var(--green); font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 6px; }
+
+/* ── Debt ── */
+.debt-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 0; border-bottom: 1px solid #f7f7f7; }
+.debt-item:last-child { border-bottom: none; }
+.debt-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--green-light); color: var(--green); font-size: 14px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.debt-name { font-size: 14px; font-weight: 500; }
+.debt-date { font-size: 11px; color: var(--sub); margin-top: 2px; }
+.debt-right { display: flex; align-items: center; gap: 10px; }
+.debt-amt { font-size: 16px; font-weight: 700; color: var(--red); }
+.settle-btn {
+  background: var(--green); color: white; border: none;
+  padding: 6px 13px; border-radius: 20px; font-size: 12px;
+  font-weight: 600; cursor: pointer; font-family: inherit;
+  transition: background 0.15s;
+}
+.settle-btn:active { background: var(--green-dark); }
+
+.aa-item-wrap { border-bottom: 1px solid #f7f7f7; }
+.aa-item-wrap:last-child { border-bottom: none; }
+.aa-item-wrap.expanded .expand-arrow { transform: rotate(90deg); }
+.aa-item-wrap .aa-detail-rows { display: none; padding: 0 0 10px 16px; }
+.aa-item-wrap.expanded .aa-detail-rows { display: block; }
+.aa-item { padding: 12px 0; display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.aa-item-body { flex: 1; min-width: 0; }
+.aa-title { font-size: 13px; font-weight: 500; }
+.aa-detail { font-size: 11px; color: var(--sub); margin-top: 3px; }
+
+.empty { text-align: center; padding: 28px; color: #bbb; font-size: 13px; line-height: 1.8; }
+.empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+.info-box { background: #fff8e1; border-radius: 12px; padding: 13px 15px; font-size: 12px; color: #795548; line-height: 1.7; margin-bottom: 14px; }
+
+.tx-has-img { cursor: pointer; }
+.tx-has-img:active { background: #f9f9f9; border-radius: 8px; }
+.receipt-badge { font-size: 14px; margin-left: 4px; }
+
+/* ── Receipt Modal ── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.75); z-index: 999;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: white; border-radius: 18px;
+  max-width: 90vw; max-height: 85vh;
+  overflow: hidden; display: flex; flex-direction: column;
+}
+.modal-head {
+  padding: 14px 18px; display: flex; justify-content: space-between;
+  align-items: center; border-bottom: 1px solid var(--border);
+}
+.modal-head span { font-size: 14px; font-weight: 600; }
+.modal-close {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg); border: none; cursor: pointer;
+  font-size: 16px; display: flex; align-items: center; justify-content: center;
+}
+.modal-body { overflow-y: auto; padding: 16px; }
+.modal-body img { width: 100%; border-radius: 10px; display: block; }
+.modal-loading { text-align: center; padding: 32px; color: var(--sub); font-size: 13px; }
+
+/* ── Spinner ── */
+.spinner { display: flex; justify-content: center; padding: 24px; }
+.spinner::after { content: ''; width: 28px; height: 28px; border: 3px solid var(--border); border-top-color: var(--green); border-radius: 50%; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Delete button ── */
+.delete-btn {
+  background: none; border: 1px solid #e8e8e8; color: #ccc;
+  width: 26px; height: 26px; border-radius: 50%;
+  font-size: 15px; cursor: pointer; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.15s; font-family: inherit; line-height: 1;
+}
+.delete-btn:active { background: #fff0f0; color: var(--red); border-color: #ffcdd2; }
+
+/* ── Member debt view ── */
+.member-item { border-bottom: 1px solid #f7f7f7; }
+.member-item:last-child { border-bottom: none; }
+.member-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 13px 0; cursor: pointer; user-select: none;
+}
+.member-no-debt .debt-amt { color: #ccc; font-size: 13px; font-weight: 400; }
+.member-detail-rows { display: none; padding: 0 0 10px 46px; }
+.member-item.expanded .member-detail-rows { display: block; }
+.expand-arrow { color: #ccc; font-size: 11px; transition: transform 0.2s; display: inline-block; }
+.member-item.expanded .expand-arrow { transform: rotate(90deg); }
+.detail-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; font-size: 12px; color: var(--sub);
+  border-bottom: 1px solid #f7f7f7;
+}
+.detail-row:last-child { border-bottom: none; }
+.detail-desc { font-weight: 500; color: var(--text); }
+</style>
+</head>
+<body>
+
+<!-- ══ Receipt Modal ══ -->
+<div class="modal-overlay" id="receiptModal" onclick="closeModal(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <span>📷 收據圖片</span>
+      <button class="modal-close" onclick="closeReceiptModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <div class="modal-loading">載入中...</div>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-inner">
+    <div class="header-icon">💰</div>
+    <div class="header-text">
+      <h1>AI 智慧記帳助理</h1>
+      <p id="uid-label">載入中...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ══ 個人頁 ══ -->
+<div id="personal" class="page active">
+  <div class="cards" id="cards">
+    <div class="card"><div class="card-val" id="c-today">—</div><div class="card-lbl">今日</div></div>
+    <div class="card"><div class="card-val" id="c-week">—</div><div class="card-lbl">本週</div></div>
+    <div class="card"><div class="card-val" id="c-month">—</div><div class="card-lbl">本月</div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">📊 消費類別</div>
+      <div class="section-sub">本月</div>
+    </div>
+    <canvas id="pieChart" style="max-height:210px"></canvas>
+    <div id="pie-empty" class="empty" style="display:none"><div class="empty-icon">📭</div>本月尚無消費記錄</div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">📈 每日支出趨勢</div>
+      <div class="section-sub">近14天</div>
+    </div>
+    <canvas id="barChart" style="max-height:170px"></canvas>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">📋 消費明細</div>
+      <div class="section-sub">最近25筆</div>
+    </div>
+    <div id="tx-list"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══ 群組頁 ══ -->
+<div id="group" class="page">
+  <div class="info-box">
+    💡 在群組中 @AI智慧記帳助理 說 <strong>AA 火鍋2400 @小明 @小華</strong><br>
+    Bot 自動計算並記錄欠款，點擊成員可展開明細。
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">👥 群組成員欠款</div>
+      <div class="section-sub">點擊查看明細</div>
+    </div>
+    <div id="member-list"><div class="spinner"></div></div>
+  </div>
+
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">📂 分帳歷史</div>
+    </div>
+    <div id="aa-list"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<script>
+const COLORS = ['#00B300','#26C6DA','#FF7043','#AB47BC','#FFA726','#78909C','#EC407A','#5C6BC0'];
+const CAT_COLORS = { '餐飲':'#FF7043','交通':'#29B6F6','購物':'#AB47BC','娛樂':'#FFA726','醫療':'#EC407A','收入':'#00B300','其他':'#78909C' };
+let _pieChart = null, _barChart = null;
+
+const params = new URLSearchParams(location.search);
+const uid = params.get('uid') || 'unknown';
+const groupId = params.get('group') || null;
+const isGroup = !!groupId;
+
+// 根據模式決定顯示哪個頁面
+document.getElementById('personal').style.display = isGroup ? 'none' : 'block';
+document.getElementById('group').style.display = isGroup ? 'block' : 'none';
+
+// 更新 header
+const headerTitle = document.querySelector('.header-text h1');
+const headerIcon = document.querySelector('.header-icon');
+if (isGroup) {
+  headerTitle.textContent = '群組分帳儀表板';
+  headerIcon.textContent = '👥';
+  document.getElementById('uid-label').textContent = `群組 ID: ${groupId.slice(0,14)}…`;
+} else {
+  headerTitle.textContent = 'AI 智慧記帳助理';
+  headerIcon.textContent = '💰';
+  document.getElementById('uid-label').textContent = uid.length > 16 ? uid.slice(0,16)+'…' : uid;
+}
+
+async function load() {
+  try {
+    // 單一請求取得所有資料，避免 localtunnel 同時連線限制
+    const dataUrl = isGroup
+      ? `/api/dashboard-data?user_id=${uid}&group_id=${groupId}`
+      : `/api/dashboard-data?user_id=${uid}`;
+    const data = await fetch(dataUrl).then(r => {
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
+    });
+
+    const s1  = data.summary_1  || {total:0, breakdown:[]};
+    const s7  = data.summary_7  || {total:0, breakdown:[]};
+    const s30 = data.summary_30 || {total:0, breakdown:[]};
+    const daily       = data.daily        || [];
+    const records     = data.records      || [];
+    const memberDebts = data.member_debts || [];
+    const aaHist      = data.aa_history   || [];
+    const aaOwner     = isGroup ? groupId : uid;
+
+    // Cards
+    document.getElementById('c-today').textContent = `$${Math.abs(s1.total).toFixed(0)}`;
+    document.getElementById('c-week').textContent = `$${Math.abs(s7.total).toFixed(0)}`;
+    document.getElementById('c-month').textContent = `$${Math.abs(s30.total).toFixed(0)}`;
+
+    // Pie (destroy old instance first to avoid "canvas already in use")
+    const cats = s30.breakdown.filter(b => b.total < 0);
+    if (!cats.length) {
+      document.getElementById('pieChart').style.display='none';
+      document.getElementById('pie-empty').style.display='block';
+    } else {
+      document.getElementById('pieChart').style.display='';
+      document.getElementById('pie-empty').style.display='none';
+      if (_pieChart) _pieChart.destroy();
+      _pieChart = new Chart(document.getElementById('pieChart'), {
+        type: 'doughnut',
+        data: { labels: cats.map(b=>b.category), datasets: [{ data: cats.map(b=>Math.abs(b.total)), backgroundColor: cats.map(b=>CAT_COLORS[b.category]||'#90A4AE'), borderWidth: 0, hoverOffset: 6 }] },
+        options: { cutout:'64%', plugins:{ legend:{ position:'bottom', labels:{ boxWidth:10, font:{size:12}, padding:14 } } } }
+      });
+    }
+
+    // Bar
+    if (_barChart) _barChart.destroy();
+    _barChart = new Chart(document.getElementById('barChart'), {
+      type:'bar',
+      data: {
+        labels: daily.map(d=>d.date.slice(5)),
+        datasets:[{ data: daily.map(d=>Math.abs(d.total)), backgroundColor: daily.map(d=>Math.abs(d.total)>0?'rgba(0,179,0,0.75)':'rgba(0,0,0,0.06)'), borderRadius:5, borderSkipped:false }]
+      },
+      options:{ plugins:{legend:{display:false}}, scales:{ y:{beginAtZero:true, grid:{color:'#f5f5f5'}, ticks:{font:{size:11}}}, x:{grid:{display:false}, ticks:{font:{size:10}}} } }
+    });
+
+    // Transactions (with immediate-delete button)
+    const tEl = document.getElementById('tx-list');
+    if (!records.length) {
+      tEl.innerHTML = '<div class="empty"><div class="empty-icon">📭</div>尚無消費記錄<br>傳訊息給 Bot 開始記帳吧！</div>';
+    } else {
+      tEl.innerHTML = records.map(r => {
+        const color = CAT_COLORS[r.category] || '#90A4AE';
+        const isInc = r.amount > 0;
+        const hasImg = !!r.image_path;
+        const receiptAttr = hasImg ? `onclick="showReceipt(${r.id},'${escHtml(r.note||'收據')}')"` : '';
+        const imgBadge = hasImg ? `<span class="receipt-badge" title="點擊查看收據">📷</span>` : '';
+        return `<div class="tx ${hasImg?'tx-has-img':''}" ${receiptAttr}>
+          <div class="tx-l">
+            <div class="cat-dot" style="background:${color}"></div>
+            <div class="tx-info">
+              <div class="tx-note">${escHtml(r.note||'（無備註）')}${imgBadge}</div>
+              <div class="tx-date">${r.record_date} &nbsp;<span class="badge">${r.category}</span></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="tx-amt ${isInc?'inc':''}">${isInc?'+':''}${r.amount.toFixed(0)}</div>
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteRecord(${r.id}, this)" title="刪除">×</button>
+          </div>
+        </div>`;
+      }).join('');
+    }
+
+    // Member debts
+    const mEl = document.getElementById('member-list');
+    if (mEl) {
+      if (!memberDebts.length) {
+        mEl.innerHTML = '<div class="empty"><div class="empty-icon">👥</div>尚無成員記錄<br>成員在群組 @ Bot 後自動加入</div>';
+      } else {
+        const safeId = s => s.replace(/[^a-zA-Z0-9]/g, '_');
+        mEl.innerHTML = memberDebts.map(m => {
+          const hasDebt = m.total_debt > 0;
+          const debtText = hasDebt
+            ? `<span class="debt-amt">$${m.total_debt.toFixed(0)}</span>`
+            : `<span style="color:#ccc;font-size:12px">無欠款</span>`;
+          const settleBtn = hasDebt
+            ? `<button class="settle-btn" data-name="${escHtml(m.display_name)}" onclick="event.stopPropagation(); settle(this.dataset.name, this)">結清</button>`
+            : '';
+          const sid = safeId(m.user_id);
+          return `
+            <div class="member-item" id="mi-${sid}">
+              <div class="member-row" onclick="toggleMemberDetail('${sid}', '${escHtml(m.display_name)}')">
+                <div class="debt-avatar">${escHtml(m.display_name[0])}</div>
+                <div style="flex:1"><div class="debt-name">${escHtml(m.display_name)}</div></div>
+                <div class="debt-right">
+                  ${debtText}${settleBtn}
+                  <span class="expand-arrow">▶</span>
+                </div>
+              </div>
+              <div class="member-detail-rows" id="md-${sid}"></div>
+            </div>`;
+        }).join('');
+      }
+    }
+
+    // AA History — expandable (點擊看誰欠款), delete 立即消失
+    const aEl = document.getElementById('aa-list');
+    if (!aaHist.length) {
+      aEl.innerHTML = '<div class="empty"><div class="empty-icon">📂</div>尚無分帳記錄</div>';
+    } else {
+      aEl.innerHTML = aaHist.map(a => {
+        const ed = escHtml(a.description);
+        return `
+        <div class="aa-item-wrap" data-owner="${aaOwner}" data-desc="${ed}" data-time="${a.created_at}">
+          <div class="aa-item" onclick="toggleAaDetail(this.closest('.aa-item-wrap'))">
+            <div class="aa-item-body">
+              <div class="aa-title">📋 ${ed}</div>
+              <div class="aa-detail">每人 $${a.per_person.toFixed(0)} × ${a.people_count} 人 ／ ${a.created_at.slice(0,10)}</div>
+            </div>
+            <span class="expand-arrow">▶</span>
+            <button class="delete-btn" onclick="event.stopPropagation(); deleteAaEvent(this.closest('.aa-item-wrap'))" title="刪除">×</button>
+          </div>
+          <div class="aa-detail-rows"></div>
+        </div>`;
+      }).join('');
+    }
+
+  } catch(e) {
+    console.error(e);
+    const tEl = document.getElementById('tx-list');
+    if (tEl) tEl.innerHTML = '<div class="empty">⚠️ 載入失敗<br>請確認 Python 伺服器正在運行</div>';
+  }
+}
+
+function escHtml(str) {
+  return str ? String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : '';
+}
+
+async function settle(name, btn) {
+  btn.textContent = '...';
+  btn.disabled = true;
+  const owner = isGroup ? groupId : uid;
+  await fetch('/api/settle', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({user_id: owner, debtor_name: name})
+  });
+  setTimeout(()=>load(), 300);
+}
+
+async function deleteRecord(id, btn) {
+  if (!confirm('確定刪除此筆記錄？')) return;
+  const row = btn.closest('.tx');
+  if (row) row.remove();            // 立即從畫面消失
+  await fetch(`/api/record/${id}`, { method: 'DELETE' });
+  load();                            // 背景更新統計卡片和圖表
+}
+
+async function deleteAaEvent(wrap) {
+  if (!confirm('確定刪除此分帳記錄？')) return;
+  const { owner, desc, time } = wrap.dataset;
+  wrap.remove();                     // 立即從畫面消失
+  await fetch('/api/aa-event', {
+    method: 'DELETE',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ owner, description: desc, created_at: time })
+  });
+  load();                            // 背景更新成員欠款
+}
+
+async function toggleAaDetail(wrap) {
+  const detail = wrap.querySelector('.aa-detail-rows');
+  const wasExpanded = wrap.classList.contains('expanded');
+  wrap.classList.toggle('expanded');
+  if (wasExpanded) return;
+  const { owner, desc, time } = wrap.dataset;
+  try {
+    const res = await fetch(`/api/aa-event-detail?owner=${encodeURIComponent(owner)}&description=${encodeURIComponent(desc)}&created_at=${encodeURIComponent(time)}`);
+    const entries = await res.json();
+    if (!entries.length) {
+      detail.innerHTML = '<div style="color:#bbb;text-align:center;padding:8px;font-size:12px">無記錄</div>';
+    } else {
+      detail.innerHTML = entries.map(e => `
+        <div class="detail-row">
+          <span class="detail-desc">${escHtml(e.debtor_name)}</span>
+          <span>${e.settled ? '<span style="color:var(--green)">已結清</span>' : '$' + e.amount.toFixed(0)}</span>
+        </div>`).join('');
+    }
+  } catch(err) {
+    detail.innerHTML = '<div style="color:#bbb;text-align:center;padding:8px;font-size:12px">載入失敗</div>';
+  }
+}
+
+async function toggleMemberDetail(userId, name) {
+  const item = document.getElementById(`mi-${userId}`);
+  const detail = document.getElementById(`md-${userId}`);
+  const wasExpanded = item.classList.contains('expanded');
+  item.classList.toggle('expanded');
+  if (wasExpanded) return;
+  try {
+    const res = await fetch(`/api/member-debt-detail?group_id=${groupId}&debtor_name=${encodeURIComponent(name)}`);
+    const entries = await res.json();
+    if (!entries.length) {
+      detail.innerHTML = '<div style="color:#bbb;text-align:center;padding:8px;font-size:12px">無欠款記錄</div>';
+    } else {
+      detail.innerHTML = entries.map(e => `
+        <div class="detail-row">
+          <span class="detail-desc">${escHtml(e.description)}</span>
+          <span>$${e.amount.toFixed(0)} ／ ${e.created_at.slice(0,10)}</span>
+        </div>`).join('');
+    }
+  } catch(err) {
+    detail.innerHTML = '<div style="color:#bbb;text-align:center;padding:8px;font-size:12px">載入失敗</div>';
+  }
+}
+
+load();
+
+function showReceipt(id, note) {
+  const modal = document.getElementById('receiptModal');
+  const body = document.getElementById('modalBody');
+  body.innerHTML = '<div class="modal-loading">載入中...</div>';
+  modal.classList.add('open');
+  const img = new Image();
+  img.onload = () => { body.innerHTML = ''; body.appendChild(img); };
+  img.onerror = () => { body.innerHTML = '<div class="modal-loading">⚠️ 圖片載入失敗</div>'; };
+  img.src = `/api/image/${id}`;
+  img.alt = note;
+}
+
+function closeReceiptModal() {
+  document.getElementById('receiptModal').classList.remove('open');
+}
+
+function closeModal(e) {
+  if (e.target === document.getElementById('receiptModal')) closeReceiptModal();
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+# 機密
+.env
+
+# 資料庫（個人資料）
+*.db
+*.sqlite
+
+# 收據圖片（個人資料）
+receipt_images/
+
+# Python 暫存
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.venv/
+venv/
+env/
+
+# 簡報檔（非程式碼）
+*.pptx
+~$*
+
+# 系統檔
+.DS_Store
+Thumbs.db
+
+# 上傳的圖片
+uploads/
